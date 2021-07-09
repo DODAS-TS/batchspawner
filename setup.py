@@ -28,34 +28,20 @@ with open(pjoin(here, "README.md"), encoding="utf-8") as f:
     long_desc = f.read()
 
 setup_args = dict(
-    name="batchspawner",
+    name="remote-slurm-spawner",
     scripts=glob(pjoin("scripts", "*")),
-    packages=["batchspawner"],
+    packages=["emote-slurm-spawner"],
     version=version_ns["__version__"],
-    description="""Batchspawner: A spawner for Jupyterhub to spawn notebooks using batch resource managers.""",
+    description="""emote-slurm-spawner: A spawner for Jupyterhub to spawn notebooks using slurm on remote machine.""",
     long_description=long_desc,
     long_description_content_type="text/markdown",
-    author="Michael Milligan, Andrea Zonca, Mike Gilbert",
-    author_email="milligan@umn.edu",
+    author="D. Ciangottini, credits to Michael Milligan, Andrea Zonca, Mike Gilbert",
+    author_email="dciangot@cern.ch",
     url="http://jupyter.org",
     license="BSD",
     platforms="Linux, Mac OS X",
     python_requires="~=3.3",
     keywords=["Interactive", "Interpreter", "Shell", "Web", "Jupyter"],
-    classifiers=[
-        "Intended Audience :: Developers",
-        "Intended Audience :: System Administrators",
-        "Intended Audience :: Science/Research",
-        "License :: OSI Approved :: BSD License",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-    ],
-    project_urls={
-        "Bug Reports": "https://github.com/jupyterhub/batchspawner/issues",
-        "Source": "https://github.com/jupyterhub/batchspawner/",
-        "About Jupyterhub": "http://jupyterhub.readthedocs.io/en/latest/",
-        "Jupyter Project": "http://jupyter.org",
-    },
 )
 
 # setuptools requirements

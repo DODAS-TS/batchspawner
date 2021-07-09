@@ -1,15 +1,8 @@
-# batchspawner for Jupyterhub
-
-[![GitHub Workflow Status - Test](https://img.shields.io/github/workflow/status/jupyterhub/batchspawner/Test?logo=github&label=tests)](https://github.com/jupyterhub/batchspawner/actions)
-[![Latest PyPI version](https://img.shields.io/pypi/v/batchspawner?logo=pypi&logoColor=white)](https://pypi.python.org/pypi/batchspawner)
-[![GitHub](https://img.shields.io/badge/issue_tracking-github-blue?logo=github)](https://github.com/jupyterhub/batchspawner/issues)
-[![Discourse](https://img.shields.io/badge/help_forum-discourse-blue?logo=discourse)](https://discourse.jupyter.org/c/jupyterhub)
-[![Gitter](https://img.shields.io/badge/social_chat-gitter-blue?logo=gitter)](https://gitter.im/jupyterhub/jupyterhub)
-[![Contribute](https://img.shields.io/badge/I_want_to_contribute!-grey?logo=jupyter)](https://github.com/jupyterhub/batchspawner/blob/master/CONTRIBUTING.md)
+# Remote Slurm Spawner for Jupyterhub
 
 This is a custom spawner for [Jupyterhub](https://jupyterhub.readthedocs.io/) that is designed for installations on clusters using batch scheduling software.
 
-This began as a generalization of [mkgilbert's batchspawner](https://github.com/mkgilbert/slurmspawner) which in turn was inspired by [Andrea Zonca's blog post](http://zonca.github.io/2015/04/jupyterhub-hpc.html "Run jupyterhub on a Supercomputer") where he explains his implementation for a spawner that uses SSH and Torque. His github repo is found [here](http://www.github.com/zonca/remotespawner "RemoteSpawner").
+This is a fork of [jupyterhub official batchspawner](https://github.com/jupyterhub/batchspawner) that began as a generalization of [mkgilbert's batchspawner](https://github.com/mkgilbert/slurmspawner) which in turn was inspired by [Andrea Zonca's blog post](http://zonca.github.io/2015/04/jupyterhub-hpc.html "Run jupyterhub on a Supercomputer") where he explains his implementation for a spawner that uses SSH and Torque. His github repo is found [here](http://www.github.com/zonca/remotespawner "RemoteSpawner").
 
 This package formerly included WrapSpawner and ProfilesSpawner, which provide mechanisms for runtime configuration of spawners. These have been split out and moved to the [`wrapspawner`](https://github.com/jupyterhub/wrapspawner) package.
 
@@ -18,7 +11,7 @@ This package formerly included WrapSpawner and ProfilesSpawner, which provide me
 1. from root directory of this repo (where setup.py is), run `pip install -e .`
 
    If you don't actually need an editable version, you can simply run
-   `pip install batchspawner`
+   `pip install -U git+https://git@github.com/dodas-ts/batchspawner`
 
 2. add lines in jupyterhub_config.py for the spawner you intend to use, e.g.
 
@@ -28,11 +21,7 @@ This package formerly included WrapSpawner and ProfilesSpawner, which provide me
       import batchspawner    # Even though not used, needed to register batchspawner interface
    ```
 
-3. Depending on the spawner, additional configuration will likely be needed.
-
-## Batch Spawners
-
-For information on the specific spawners, see [SPAWNERS.md](SPAWNERS.md).
+3. 
 
 ### Overview
 
