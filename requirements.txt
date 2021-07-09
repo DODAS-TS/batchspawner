@@ -2,3 +2,4 @@ async_generator>=1.8
 jinja2
 jupyterhub>=0.5
 paramiko
+pycurl
