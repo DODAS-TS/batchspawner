@@ -1,5 +1,32 @@
 from batchspawner import UserEnvMixin, BatchSpawnerRegexStates
+from traitlets import Integer, Unicode, Float, Dict, default
+from enum import Enum
+import jupyterhub
+from tornado import gen
 
+
+from jinja2 import Template
+import subprocess
+import paramiko
+
+def format_template(template, *args, **kwargs):
+    """Format a template, either using jinja2 or str.format().
+
+    Use jinja2 if the template is a jinja2.Template, or contains '{{' or
+    '{%'.  Otherwise, use str.format() for backwards compatability with
+    old scripts (but you can't mix them).
+    """
+    if isinstance(template, Template):
+        return template.render(*args, **kwargs)
+    elif "{{" in template or "{%" in template:
+        return Template(template).render(*args, **kwargs)
+    return template.format(*args, **kwargs)
+
+class JobStatus(Enum):
+    NOTFOUND = 0
+    RUNNING = 1
+    PENDING = 2
+    UNKNOWN = 3
 
 class RemoteSlurmSpawner(UserEnvMixin, BatchSpawnerRegexStates):
     batch_script = Unicode(
@@ -189,7 +216,6 @@ echo "jupyterhub-singleuser ended gracefully"
         self.log.info('Spawner submitting job using ' + cmd)
         self.log.info('Spawner submitted script:\n' + script)
         #cmd_good = "echo '%s' | " % script + cmd
-        import paramiko
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect("login01-ext.m100.cineca.it", username="tboccali", password="___345@@")
@@ -231,7 +257,6 @@ echo "jupyterhub-singleuser ended gracefully"
         cmd = ' '.join((format_template(self.exec_prefix, **subvars),
                         format_template(self.batch_query_cmd, **subvars)))
         self.log.debug('Spawner querying job: ' + cmd)
-        import paramiko
         try:
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
