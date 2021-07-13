@@ -3,3 +3,4 @@ jinja2
 jupyterhub>=0.5
 paramiko
 pycurl
+pytest

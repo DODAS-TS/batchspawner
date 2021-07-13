@@ -11,14 +11,14 @@ This package formerly included WrapSpawner and ProfilesSpawner, which provide me
 1. from root directory of this repo (where setup.py is), run `pip install -e .`
 
    If you don't actually need an editable version, you can simply run
-   `pip install -U git+https://git@github.com/dodas-ts/batchspawner`
+   `pip install -U remote_slurm_spawner`
 
 2. add lines in jupyterhub_config.py for the spawner you intend to use, e.g.
 
    ```python
       c = get_config()
-      c.JupyterHub.spawner_class = 'batchspawner.TorqueSpawner'
-      import batchspawner    # Even though not used, needed to register batchspawner interface
+      c.JupyterHub.spawner_class = 'remote-slurm-spawner.RemoteSlurmSpawner'
+      import remote_slurm_spawner    # Even though not used, needed to register batchspawner interface
    ```
 
 3. 
