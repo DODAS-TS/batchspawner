@@ -599,6 +599,7 @@ class BatchSpawnerRegexStates(BatchSpawnerBase):
         else:
             return match.expand(self.state_exechost_exp)
 
+
 class UserEnvMixin:
     """Mixin class that computes values for USER, SHELL and HOME in the environment passed to
     the job submission subprocess in case the batch system needs these for the batch script."""
@@ -714,15 +715,23 @@ echo "jupyterhub-singleuser ended gracefully"
     state_unknown_re = Unicode(
         r"^slurm_load_jobs error: (?:Socket timed out on send/recv|Unable to contact slurm controller)"
     ).tag(config=True)
-    state_exechost_re = Unicode(r'\s+((?:[\w_-]+\.?)+)$').tag(config=True)
+    state_exechost_re = Unicode(r"\s+((?:[\w_-]+\.?)+)$").tag(config=True)
 
     def parse_job_id(self, output):
         # make sure jobid is really a number
         try:
             # use only last line to circumvent slurm bug
-            output = output.splitlines()[-1].strip('\n').strip('\\n').strip('\\\n').replace("\\n", "").replace("'", "").replace("b", "")
-            id = output.split(';')[0]
-            self.log.debug("SlurmSpawner job ID from text: " + id )
+            output = (
+                output.splitlines()[-1]
+                .strip("\n")
+                .strip("\\n")
+                .strip("\\\n")
+                .replace("\\n", "")
+                .replace("'", "")
+                .replace("b", "")
+            )
+            id = output.split(";")[0]
+            self.log.debug("SlurmSpawner job ID from text: " + id)
             int(str(id))
         except Exception as e:
             self.log.error("SlurmSpawner unable to parse job ID from text: " + e)
@@ -732,41 +741,50 @@ echo "jupyterhub-singleuser ended gracefully"
     def state_gethost(self):
         host = BatchSpawnerRegexStates.state_gethost(self)
         import socket
+
         return socket.gethostbyname(host)
 
     async def start(self):
         """Start the process"""
-        self.ip = self.traits()['ip'].default_value
-        self.port = self.traits()['port'].default_value
+        self.ip = self.traits()["ip"].default_value
+        self.port = self.traits()["port"].default_value
 
-        if jupyterhub.version_info >= (0,8) and self.server:
+        if jupyterhub.version_info >= (0, 8) and self.server:
             self.server.port = self.port
 
         await self.submit_batch_script()
 
-        subvars = self.get_req_subvars()       
+        subvars = self.get_req_subvars()
 
         # We are called with a timeout, and if the timeout expires this function will
         # be interrupted at the next yield, and self.stop() will be called.
         # So this function should not return unless successful, and if unsuccessful
         # should either raise and Exception or loop forever.
         if len(self.job_id) == 0:
-            raise RuntimeError("Jupyter batch job submission failure (no jobid in output)")
+            raise RuntimeError(
+                "Jupyter batch job submission failure (no jobid in output)"
+            )
         while True:
             status = await self.query_job_status()
             if status == JobStatus.RUNNING:
                 break
             elif status == JobStatus.PENDING:
-                self.log.debug('Job ' + self.job_id + ' still pending')
+                self.log.debug("Job " + self.job_id + " still pending")
             elif status == JobStatus.UNKNOWN:
-                self.log.debug('Job ' + self.job_id + ' still unknown')
+                self.log.debug("Job " + self.job_id + " still unknown")
             else:
-                self.log.warning('Job ' + self.job_id + ' neither pending nor running.\n' +
-                    self.job_status)
+                self.log.warning(
+                    "Job "
+                    + self.job_id
+                    + " neither pending nor running.\n"
+                    + self.job_status
+                )
                 self.clear_state()
-                raise RuntimeError('The Jupyter batch job has disappeared'
-                        ' while pending in the queue or died immediately'
-                        ' after starting.')
+                raise RuntimeError(
+                    "The Jupyter batch job has disappeared"
+                    " while pending in the queue or died immediately"
+                    " after starting."
+                )
             await gen.sleep(self.startup_poll_interval)
 
         self.ip = self.state_gethost()
@@ -775,37 +793,49 @@ echo "jupyterhub-singleuser ended gracefully"
             await gen.sleep(self.startup_poll_interval)
             # Test framework: For testing, mock_port is set because we
             # don't actually run the single-user server yet.
-            if hasattr(self, 'mock_port'):
+            if hasattr(self, "mock_port"):
                 self.port = self.mock_port
 
         try:
-            cmd = "nohup sshpass -f %s ssh -n -f %s@%s -L %s:%s:%s -M -S %s/tunnel-%s -fN machine-%s &"  % (
-                    subvars["sshPwdFile"],
-                    subvars["sshUser"],
-                    subvars["sshHost"],
-                    self.port, self.ip, self.port,
-                    subvars["sshTunnelsFolder"],
-                    self.port, self.port
+            cmd = "nohup sshpass -f %s ssh -n -f %s@%s -L %s:%s:%s -M -S %s/tunnel-%s -fN machine-%s &" % (
+                subvars["sshPwdFile"],
+                subvars["sshUser"],
+                subvars["sshHost"],
+                self.port,
+                self.ip,
+                self.port,
+                subvars["sshTunnelsFolder"],
+                self.port,
+                self.port,
             )
-            self.log.info('Tunneling ' + self.ip + ":" + str(self.port) + ' via  localhost:' + str(self.port))
-            self.log.debug('Executing command: %s', cmd)
+            self.log.info(
+                "Tunneling "
+                + self.ip
+                + ":"
+                + str(self.port)
+                + " via  localhost:"
+                + str(self.port)
+            )
+            self.log.debug("Executing command: %s", cmd)
             p = subprocess.Popen(cmd, shell=True)
             outs, errs = p.communicate(timeout=15)
-            self.log.debug('Output: %s \n Errors: %s', outs, errs)
+            self.log.debug("Output: %s \n Errors: %s", outs, errs)
         except Exception as ex:
             self.log.error("Failed to setup tunnel to remote server", ex)
             raise ex
 
         self.ip = "127.0.0.1"
-        self.log.info('Registering server at: ' + self.ip + ":" + str(self.port) )
-        if jupyterhub.version_info < (0,7):
+        self.log.info("Registering server at: " + self.ip + ":" + str(self.port))
+        if jupyterhub.version_info < (0, 7):
             # store on user for pre-jupyterhub-0.7:
             self.user.server.port = self.port
             self.user.server.ip = self.ip
         self.db.commit()
-        self.log.info("Notebook server job {0} started at {1}:{2}".format(
-                        self.job_id, self.ip, self.port)
+        self.log.info(
+            "Notebook server job {0} started at {1}:{2}".format(
+                self.job_id, self.ip, self.port
             )
+        )
 
         return self.ip, self.port
 
@@ -818,11 +848,15 @@ echo "jupyterhub-singleuser ended gracefully"
         subvars = self.get_req_subvars()
         self.log.info("Stopping ssh tunnel on port: " + self.port)
         try:
-            cmd = "ssh -S %s/tunnel-%s -O exit machine-%s" % (subvars["sshTunnelsFolder"], self.port, self.port)
-            self.log.debug('Executing command: %s', cmd)
+            cmd = "ssh -S %s/tunnel-%s -O exit machine-%s" % (
+                subvars["sshTunnelsFolder"],
+                self.port,
+                self.port,
+            )
+            self.log.debug("Executing command: %s", cmd)
             p = subprocess.Popen(cmd, shell=True)
             outs, errs = p.communicate(timeout=15)
-            self.log.debug('Output: %s \n Errors: %s', outs, errs)
+            self.log.debug("Output: %s \n Errors: %s", outs, errs)
         except Exception as ex:
             self.log.error("Failed to kill tunnel to remote server", ex)
             raise ex
@@ -837,85 +871,104 @@ echo "jupyterhub-singleuser ended gracefully"
                 return
             await gen.sleep(1.0)
         if self.job_id:
-            self.log.warning("Notebook server job {0} at {1}:{2} possibly failed to terminate".format(
-                             self.job_id, self.ip, self.port)
+            self.log.warning(
+                "Notebook server job {0} at {1}:{2} possibly failed to terminate".format(
+                    self.job_id, self.ip, self.port
                 )
+            )
 
     async def submit_batch_script(self):
         subvars = self.get_req_subvars()
         # `cmd` is submitted to the batch system
-        cmd = ' '.join((format_template(self.exec_prefix, **subvars),
-                        format_template(self.batch_submit_cmd, **subvars)))
+        cmd = " ".join(
+            (
+                format_template(self.exec_prefix, **subvars),
+                format_template(self.batch_submit_cmd, **subvars),
+            )
+        )
         # `subvars['cmd']` is what is run _inside_ the batch script,
         # put into the template.
-        subvars['cmd'] = self.cmd_formatted_for_batch()
-        if hasattr(self, 'user_options'):
+        subvars["cmd"] = self.cmd_formatted_for_batch()
+        if hasattr(self, "user_options"):
             subvars.update(self.user_options)
         script = await self._get_batch_script(**subvars)
-        self.log.info('Spawner submitting job using ' + cmd)
-        self.log.info('Spawner submitted script:\n' + script)
-        #cmd_good = "echo '%s' | " % script + cmd
+        self.log.info("Spawner submitting job using " + cmd)
+        self.log.info("Spawner submitted script:\n" + script)
+        # cmd_good = "echo '%s' | " % script + cmd
         import paramiko
+
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         with open(subvars["sshPwdFile"]) as f:
-            ssh.connect(subvars["sshHost"], username=subvars["sshUser"], password=f.read())
+            ssh.connect(
+                subvars["sshHost"], username=subvars["sshUser"], password=f.read()
+            )
         env_string = ""
-        for k,v in self.get_env().items():
+        for k, v in self.get_env().items():
             if "JUPYTERHUB" in k:
-                env_string += "export %s=%s \n" % (k,v)
+                env_string += "export %s=%s \n" % (k, v)
         self.log.info(env_string)
-        _, ssh_stdout, ssh_stderr = ssh.exec_command('echo "%s" | ' % script.replace("__export__", env_string) + cmd )
+        _, ssh_stdout, ssh_stderr = ssh.exec_command(
+            'echo "%s" | ' % script.replace("__export__", env_string) + cmd
+        )
         out = str(ssh_stdout.read())
         self.log.info(str(ssh_stderr.read()))
         self.log.info(self.get_env())
         self.log.info(str(ssh_stdout.read()))
         self.log.info(str(ssh_stderr.read()))
         ssh.close()
-        #out = await self.run_command(cmd_good, env=self.get_env())
-        #out = await self.run_command(cmd, input=script, env=self.get_env())
+        # out = await self.run_command(cmd_good, env=self.get_env())
+        # out = await self.run_command(cmd, input=script, env=self.get_env())
         try:
-            self.log.info('Job submitted. cmd: ' + cmd + ' output: ' + out)
+            self.log.info("Job submitted. cmd: " + cmd + " output: " + out)
             self.job_id = self.parse_job_id(out)
         except:
-            self.log.error('Job submission failed with exit code ' + out)
-            self.job_id = ''
+            self.log.error("Job submission failed with exit code " + out)
+            self.job_id = ""
         return self.job_id
 
     # Override if your batch system needs something more elaborate to query the job status
-    batch_query_cmd = Unicode('',
+    batch_query_cmd = Unicode(
+        "",
         help="Command to run to query job status. Formatted using req_xyz traits as {xyz} "
-             "and self.job_id as {job_id}."
-        ).tag(config=True)
+        "and self.job_id as {job_id}.",
+    ).tag(config=True)
 
     async def query_job_status(self):
         """Check job status, return JobStatus object."""
         if self.job_id is None or len(self.job_id) == 0:
-            self.job_status = ''
+            self.job_status = ""
             return JobStatus.NOTFOUND
         subvars = self.get_req_subvars()
-        subvars['job_id'] = self.job_id
-        cmd = ' '.join((format_template(self.exec_prefix, **subvars),
-                        format_template(self.batch_query_cmd, **subvars)))
-        self.log.debug('Spawner querying job: ' + cmd)
+        subvars["job_id"] = self.job_id
+        cmd = " ".join(
+            (
+                format_template(self.exec_prefix, **subvars),
+                format_template(self.batch_query_cmd, **subvars),
+            )
+        )
+        self.log.debug("Spawner querying job: " + cmd)
         import paramiko
+
         try:
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
             with open(subvars["sshPwdFile"]) as f:
-                ssh.connect(subvars["sshHost"], username=subvars["sshUser"], password=f.read())
-            _, ssh_stdout, ssh_stderr = ssh.exec_command( cmd )
+                ssh.connect(
+                    subvars["sshHost"], username=subvars["sshUser"], password=f.read()
+                )
+            _, ssh_stdout, ssh_stderr = ssh.exec_command(cmd)
             out = str(ssh_stdout.readlines())
             self.log.info(str(ssh_stderr.readlines()))
             self.log.info(out)
-            out = out.replace("[","").replace("'","").split(" n")[0].split("\\n")[0]
+            out = out.replace("[", "").replace("'", "").split(" n")[0].split("\\n")[0]
             ssh.close()
             self.job_status = out
         except:
-            self.log.error('Error querying job ' + self.job_id)
-            self.job_status = ''
+            self.log.error("Error querying job " + self.job_id)
+            self.job_status = ""
 
         if self.state_isrunning():
             return JobStatus.RUNNING
