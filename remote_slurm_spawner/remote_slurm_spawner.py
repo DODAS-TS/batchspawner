@@ -779,13 +779,14 @@ echo "jupyterhub-singleuser ended gracefully"
                 self.port = self.mock_port
 
         try:
-            cmd = 'nohup sshpass -f %s ssh -n -f %s@%s -L %s:%s:%s -M -S %s/tunnel-%s -fN machine-%s &' \
-                        % (subvars["sshPwdFile"],
-                             subvars["sshUser"],
-                             subvars["sshHost"],
-                            self.port, self.ip, self.port,
-                            subvars["sshTunnelsFolder"],
-                            self.port, self.port)
+            cmd = "nohup sshpass -f %s ssh -n -f %s@%s -L %s:%s:%s -M -S %s/tunnel-%s -fN machine-%s &"  % (
+                    subvars["sshPwdFile"],
+                    subvars["sshUser"],
+                    subvars["sshHost"],
+                    self.port, self.ip, self.port,
+                    subvars["sshTunnelsFolder"],
+                    self.port, self.port
+            )
             self.log.info('Tunneling ' + self.ip + ":" + str(self.port) + ' via  localhost:' + str(self.port))
             self.log.debug('Executing command: %s', cmd)
             p = subprocess.Popen(cmd, shell=True)
