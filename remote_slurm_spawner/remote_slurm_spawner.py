@@ -305,7 +305,7 @@ class BatchSpawnerBase(Spawner):
         except:
             self.log.error("Job submission failed with exit code " + out)
             self.job_id = ""
-        return self.job_id
+        return
 
     # Override if your batch system needs something more elaborate to query the job status
     batch_query_cmd = Unicode(
@@ -333,7 +333,7 @@ class BatchSpawnerBase(Spawner):
         except RuntimeError as e:
             # e.args[0] is stderr from the process
             self.job_status = e.args[0]
-        except Exception as e:
+        except:
             self.log.error("Error querying job " + self.job_id)
             self.job_status = ""
 
@@ -426,7 +426,7 @@ class BatchSpawnerBase(Spawner):
         if jupyterhub.version_info >= (0, 8) and self.server:
             self.server.port = self.port
 
-        job = await self.submit_batch_script()
+        await self.submit_batch_script()
 
         # We are called with a timeout, and if the timeout expires this function will
         # be interrupted at the next yield, and self.stop() will be called.
@@ -491,7 +491,7 @@ class BatchSpawnerBase(Spawner):
         await self.cancel_batch_job()
         if now:
             return
-        for i in range(10):
+        for _ in range(10):
             status = await self.query_job_status()
             if status not in (JobStatus.RUNNING, JobStatus.UNKNOWN):
                 return
@@ -742,7 +742,9 @@ echo "jupyterhub-singleuser ended gracefully"
         if jupyterhub.version_info >= (0,8) and self.server:
             self.server.port = self.port
 
-        job = await self.submit_batch_script()
+        await self.submit_batch_script()
+
+        subvars = self.get_req_subvars()       
 
         # We are called with a timeout, and if the timeout expires this function will
         # be interrupted at the next yield, and self.stop() will be called.
@@ -778,11 +780,11 @@ echo "jupyterhub-singleuser ended gracefully"
 
         try:
             cmd = 'nohup sshpass -f %s ssh -n -f %s@%s -L %s:%s:%s -M -S %s/tunnel-%s -fN machine-%s &' \
-                        % (self.sshPwdFile,
-                             self.sshUser,
-                             self.sshHost,
+                        % (subvars["sshPwdFile"],
+                             subvars["sshUser"],
+                             subvars["sshHost"],
                             self.port, self.ip, self.port,
-                            self.sshTunnelsFolder,
+                            subvars["sshTunnelsFolder"],
                             self.port, self.port)
             self.log.info('Tunneling ' + self.ip + ":" + str(self.port) + ' via  localhost:' + str(self.port))
             self.log.debug('Executing command: %s', cmd)
@@ -812,9 +814,10 @@ echo "jupyterhub-singleuser ended gracefully"
         Returns immediately after sending job cancellation command if now=True, otherwise
         tries to confirm that job is no longer running."""
 
+        subvars = self.get_req_subvars()
         self.log.info("Stopping ssh tunnel on port: " + self.port)
         try:
-            cmd = "ssh -S %s/tunnel-%s -O exit machine-%s" % (self.sshTunnelsFolder, self.port, self.port)
+            cmd = "ssh -S %s/tunnel-%s -O exit machine-%s" % (subvars["sshTunnelsFolder"], self.port, self.port)
             self.log.debug('Executing command: %s', cmd)
             p = subprocess.Popen(cmd, shell=True)
             outs, errs = p.communicate(timeout=15)
@@ -827,7 +830,7 @@ echo "jupyterhub-singleuser ended gracefully"
         await self.cancel_batch_job()
         if now:
             return
-        for i in range(10):
+        for _ in range(10):
             status = await self.query_job_status()
             if status not in (JobStatus.RUNNING, JobStatus.UNKNOWN):
                 return
@@ -855,14 +858,14 @@ echo "jupyterhub-singleuser ended gracefully"
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        with open(self.sshPwdFile) as f:
-            ssh.connect(self.sshHost, username=self.sshUser, password=f.read())
+        with open(subvars["sshPwdFile"]) as f:
+            ssh.connect(subvars["sshHost"], username=subvars["sshUser"], password=f.read())
         env_string = ""
         for k,v in self.get_env().items():
             if "JUPYTERHUB" in k:
                 env_string += "export %s=%s \n" % (k,v)
         self.log.info(env_string)
-        ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command('echo "%s" | ' % script.replace("__export__", env_string) + cmd )
+        _, ssh_stdout, ssh_stderr = ssh.exec_command('echo "%s" | ' % script.replace("__export__", env_string) + cmd )
         out = str(ssh_stdout.read())
         self.log.info(str(ssh_stderr.read()))
         self.log.info(self.get_env())
@@ -900,16 +903,16 @@ echo "jupyterhub-singleuser ended gracefully"
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-            with open(self.sshPwdFile) as f:
-                ssh.connect(self.sshHost, username=self.sshUser, password=f.read())
-            ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command( cmd )
+            with open(subvars["sshPwdFile"]) as f:
+                ssh.connect(subvars["sshHost"], username=subvars["sshUser"], password=f.read())
+            _, ssh_stdout, ssh_stderr = ssh.exec_command( cmd )
             out = str(ssh_stdout.readlines())
             self.log.info(str(ssh_stderr.readlines()))
             self.log.info(out)
             out = out.replace("[","").replace("'","").split(" n")[0].split("\\n")[0]
             ssh.close()
             self.job_status = out
-        except Exception as e:
+        except:
             self.log.error('Error querying job ' + self.job_id)
             self.job_status = ''
 
