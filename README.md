@@ -21,7 +21,7 @@ This package formerly included WrapSpawner and ProfilesSpawner, which provide me
       import remote_slurm_spawner    # Even though not used, needed to register batchspawner interface
    ```
 
-3. 
+3.
 
 ### Overview
 
